@@ -1,0 +1,1 @@
+ALTER TABLE public.appearance ADD COLUMN IF NOT EXISTS selected_palette text;
