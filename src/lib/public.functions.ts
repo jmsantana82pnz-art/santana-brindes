@@ -138,7 +138,7 @@ export const getPublicHome = createServerFn({ method: "GET" }).handler(async () 
     sb.from("sections").select("*").eq("is_active", true).order("position", { ascending: true }),
     sb.from("banners").select("*").eq("is_active", true).order("position", { ascending: true }),
     sb.from("products").select(PRODUCT_FIELDS + ", promotion_label")
-      .eq("is_active", true).order("created_at", { ascending: false }).limit(24),
+      .eq("is_active", true).order("created_at", { ascending: false }).limit(500),
     sb.from("categories").select("id, name, slug, image_url")
       .eq("is_active", true).order("position", { ascending: true }),
     sb.from("campaigns").select("*").eq("active", true).order("position", { ascending: true }),
@@ -188,8 +188,20 @@ export const getPublicCatalog = createServerFn({ method: "GET" })
     let q = sb.from("products").select(PRODUCT_FIELDS).eq("is_active", true);
     if (data.search) q = q.ilike("name", `%${data.search}%`);
     if (data.category) {
-      const { data: cat } = await sb.from("categories").select("id").eq("slug", data.category).maybeSingle();
-      if (cat?.id) q = q.eq("category_id", cat.id);
+      const { data: cat, error: categoryError } = await sb
+        .from("categories")
+        .select("id")
+        .eq("slug", data.category)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (categoryError) throw new Error(categoryError.message);
+
+      // Mantém a consulta vazia quando a categoria não existe, em vez de retornar
+      // todos os produtos por engano.
+      q = q.eq(
+        "category_id",
+        cat?.id ?? "00000000-0000-0000-0000-000000000000",
+      );
     }
     if (typeof data.min === "number") q = q.gte("price_cents", data.min * 100);
     if (typeof data.max === "number") q = q.lte("price_cents", data.max * 100);
@@ -203,12 +215,16 @@ export const getPublicCatalog = createServerFn({ method: "GET" })
       default:
         q = q.order("created_at", { ascending: false });
     }
-    const { data: products } = await q.limit(96);
-    const { data: categories } = await sb
+    const { data: products, error: productsError } = await q.limit(500);
+    if (productsError) throw new Error(productsError.message);
+
+    const { data: categories, error: categoriesError } = await sb
       .from("categories")
       .select("id, name, slug, image_url")
       .eq("is_active", true)
       .order("position", { ascending: true });
+    if (categoriesError) throw new Error(categoriesError.message);
+
     const withVariants = await attachVariantSummary(sb, products ?? []);
     return { products: withVariants, categories: categories ?? [] };
   });
