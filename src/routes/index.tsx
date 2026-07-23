@@ -209,9 +209,11 @@ function Home() {
         {cat ? (
           (() => {
             const activeCat = (categories ?? []).find((c: any) => c.slug === cat);
-            const filtered = (products ?? []).filter(
-              (p: any) => activeCat && p.category_id === activeCat.id,
-            );
+            const filtered = activeCat
+              ? (products ?? []).filter(
+                  (p: any) => p.category_id === activeCat.id,
+                )
+              : [];
             return (
               <section className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
