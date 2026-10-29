@@ -677,7 +677,6 @@ export function BudgetPage() {
                 )
               </div>
 
-              {/* --- RESUMO DO ORÇAMENTO --- */}
               <div className="mt-4">
                 <h2 className="font-semibold mb-3">Resumo do Orçamento</h2>
                 <div className="space-y-3">
